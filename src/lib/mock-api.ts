@@ -27,14 +27,22 @@ const INITIAL_BOARD: Board = [
 
 const DELAY_MS = 600;
 const SAVE_FAILURE_RATE = 0.2; // ~1 in 5 saves fails, to exercise rollback
+const FETCH_FAILURE_RATE = 0.2; // exercises the error + retry state
 
 export function fetchBoard(): Promise<Board> {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(structuredClone(INITIAL_BOARD)), DELAY_MS);
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (Math.random() < FETCH_FAILURE_RATE) {
+        reject(new Error("Failed to load board"));
+      } else {
+        resolve(structuredClone(INITIAL_BOARD));
+      }
+    }, DELAY_MS);
   });
 }
 
-export function saveBoard(board: Board): Promise<void> {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- mock ignores the payload
+export function saveBoard(_board: Board): Promise<void> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
       if (Math.random() < SAVE_FAILURE_RATE) {
