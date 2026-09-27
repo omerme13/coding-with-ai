@@ -1,3 +1,7 @@
-export default function App() {
-  return <div><h1>Basic app</h1></div>
+import { NotificationFeed } from "./components/NotificationFeed";
+
+function App() {
+  return <NotificationFeed />;
 }
+
+export default App;
