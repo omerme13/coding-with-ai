@@ -46,13 +46,17 @@ export interface LiveHandle {
 }
 
 /**
- * Simulated live connection. Pushes a new notification every 3-6s.
- * Roughly every 15-20s it silently drops (fires onDisconnect) — the
- * caller is responsible for detecting this and reconnecting.
+ * Simulated live connection. About 40% of connection attempts fail
+ * outright (onDisconnect fires before onOpen/any event, simulating a
+ * handshake failure). On success: fires onOpen, then pushes a new
+ * notification every 3-6s, and roughly every 15-20s it silently drops
+ * (fires onDisconnect) — the caller is responsible for detecting this
+ * and reconnecting.
  */
 export function connectLive(
   onEvent: (n: Notification) => void,
   onDisconnect: () => void,
+  onOpen?: () => void,
 ): LiveHandle {
   let alive = true;
 
@@ -76,8 +80,18 @@ export function connectLive(
     }, delay);
   }
 
-  scheduleNext();
-  scheduleDisconnect();
+  const connectDelay = 200 + Math.random() * 300;
+  setTimeout(() => {
+    if (!alive) return;
+    if (Math.random() < 0.4) {
+      alive = false;
+      onDisconnect();
+      return;
+    }
+    onOpen?.();
+    scheduleNext();
+    scheduleDisconnect();
+  }, connectDelay);
 
   return {
     close() {
@@ -87,9 +101,11 @@ export function connectLive(
 }
 
 export function markAsRead(id: string): Promise<void> {
+  void id;
   return new Promise((resolve) => setTimeout(resolve, 150));
 }
 
 export function markAllAsRead(ids: string[]): Promise<void> {
+  void ids;
   return new Promise((resolve) => setTimeout(resolve, 150));
 }
