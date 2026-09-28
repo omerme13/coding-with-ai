@@ -1,10 +1,36 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { PanelRightClose, PanelRightOpen } from "lucide-react";
 import FloorPlanViewer from "./components/FloorPlanViewer";
+import type { FloorPlanViewerHandle } from "./components/FloorPlanViewer";
+import PinSidebar from "./components/PinSidebar";
+import PinDetails from "./components/PinDetails";
+import { initialPins } from "./lib/plan";
+import type { Pin } from "./lib/plan";
+import type { Point } from "./lib/viewport";
 
 // Provided layout. You may change it if your design needs it.
 export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pins, setPins] = useState<Pin[]>(initialPins);
+  const [activePinId, setActivePinId] = useState<string | null>(null);
+  const viewerRef = useRef<FloorPlanViewerHandle>(null);
+
+  function addPin(point: Point) {
+    setPins((prev) => [...prev, { id: crypto.randomUUID(), x: point.x, y: point.y, label: `Pin ${prev.length + 1}` }]);
+    setActivePinId(null);
+  }
+
+  function removePin(id: string) {
+    setPins((prev) => prev.filter((pin) => pin.id !== id));
+    setActivePinId((active) => (active === id ? null : active));
+  }
+
+  const activePin = pins.find((pin) => pin.id === activePinId);
+
+  function focusPin(pin: Pin) {
+    viewerRef.current?.focusPin(pin);
+    setActivePinId(pin.id);
+  }
 
   return (
     <div className="flex h-screen flex-col bg-slate-100 text-slate-900">
@@ -21,15 +47,25 @@ export default function App() {
 
       <div className="flex min-h-0 flex-1 gap-4 p-4">
         <main className="relative min-h-0 min-w-0 flex-1 rounded-lg border border-slate-300 bg-slate-200">
-          <FloorPlanViewer />
+          <FloorPlanViewer
+            ref={viewerRef}
+            pins={pins}
+            activePinId={activePinId}
+            onAddPin={addPin}
+            onSelectPin={setActivePinId}
+            popover={
+              activePin && (
+                <PinDetails
+                  pin={activePin}
+                  onDelete={() => removePin(activePin.id)}
+                  onClose={() => setActivePinId(null)}
+                />
+              )
+            }
+          />
         </main>
 
-        {sidebarOpen && (
-          <aside className="w-72 shrink-0 rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-2 text-sm font-semibold">Pins</h2>
-            <p className="text-sm text-slate-500">The pin list goes here.</p>
-          </aside>
-        )}
+        {sidebarOpen && <PinSidebar pins={pins} activePinId={activePinId} onPinClick={focusPin} />}
       </div>
     </div>
   );
